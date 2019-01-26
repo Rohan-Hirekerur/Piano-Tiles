@@ -47,25 +47,24 @@ class Tile:
 
 
 class Row:
-    def __init__(self, y, speed):
+    def __init__(self, y):
         self.pos = random.randint(0, 3)
         self.tiles = []
-        self.speed = speed
-        self.y = y*screen_height/4 - screen_height/4
-        for i in range(0, 5):
+        self.y = y
+        for i in range(0, 4):
             tile = Tile(i*screen_width/4, self.y)
             self.tiles.append(tile)
             if i == self.pos:
                 self.tiles[i].is_note = True
 
-    def move(self):
-        self.y += self.speed
-        for i in range(0, 4):
-            self.tiles[i].y = self.y
+    def move(self, speed):
+        self.y += speed
+        for tile in self.tiles:
+            tile.y = self.y
 
     def display(self):
-        for i in range(0, 4):
-            self.tiles[i].display()
+        for tile in self.tiles:
+            tile.display()
 
     def click(self, x):
         x = math.floor(4*x/screen_width)
@@ -75,9 +74,13 @@ class Row:
         for i in range(0, 4):
             if self.tiles[i].is_note and not self.tiles[i].is_clicked:
                 return False
-            if not self.tiles[i].is_note and self.tiles[i].is_clicked:
-                return False
         return True
+
+    def false_clicked(self):
+        for i in range(0, 4):
+            if not self.tiles[i].is_note and self.tiles[i].is_clicked:
+                return True
+        return False
 
 
 class Grid:
@@ -85,7 +88,8 @@ class Grid:
         self.rows = deque()
         self.speed = 5
         for i in range(0, 5):
-            row = Row(4-i, self.speed)
+            y = (4-i) * screen_height / 4 - screen_height / 4
+            row = Row(y)
             print(row.y)
             self.rows.append(row)
         print("1 :", self.rows[0].y)
@@ -94,43 +98,58 @@ class Grid:
         for row in self.rows:
             row.display()
 
-    def move_rows(self):
+    def move_rows(self, inc):
         for row in self.rows:
-            row.move()
+            if row.false_clicked():
+                return False
         if self.rows[0].y >= screen_height:
             complete = self.rows[0].is_complete()
-            #if complete:
-            row = Row(0, self.speed)
-            self.rows.append(row)
-            self.rows.__delitem__(0)
+            if complete:
+                y = self.rows[4].y - screen_height / 4
+                row = Row(y)
+                self.rows.__delitem__(0)
+                self.rows.append(row)
+            return complete
+
+        if inc and self.speed < 15:
+            self.speed *= 1.05
+        for row in self.rows:
+                row.speed = self.speed
+        for row in self.rows:
+            row.move(self.speed)
+        return True
 
     def click(self, pos):
         x = pos[0]
         y = pos[1]
-        for i in range(0, 4):
-            if y in range(int(self.rows[i].y), int(self.rows[i].y + screen_height/4)):
-                self.rows[i].click(x)
-        print("clicked :", x, y)
-
-    def inc_speed(self):
-        self.speed += 1
         for row in self.rows:
-            row.speed = self.speed
+            if y >= row.y:
+                row.click(x)
+                break
+        print("clicked :", x, y)
 
 
 grid = Grid()
 start = False
-while True:
+inc = False
+complete = True
+score = 0
+while complete:
     clock.tick()
     screen.fill(blue)
-    grid.display()
     events = pygame.event.get()
     for event in events:
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            start = True
             pos = pygame.mouse.get_pos()
-            grid.inc_speed()
             grid.click(pos)
-    grid.move_rows()
+            score += 1
+            if score % 5 == 0:
+                inc = True
+    if start:
+        complete = grid.move_rows(inc)
+    inc = False
+    grid.display()
     pygame.display.update()
 pygame.time.delay(2000)
 pygame.quit()
