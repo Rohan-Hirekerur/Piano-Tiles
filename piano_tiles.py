@@ -20,6 +20,9 @@ clock = pyglet.clock.Clock()
 clock.set_fps_limit(60)
 font = pygame.font.Font(None, 50)
 
+_songs = ['./mp3/a1.mp3', './mp3/a1s.mp3', './mp3/b1.mp3', './mp3/c1.mp3', './mp3/c1s.mp3', './mp3/c2.mp3', './mp3/d1.mp3',
+          './mp3/d1s.mp3', './mp3/e1.mp3', './mp3/f1.mp3', './mp3/f1s.mp3', './mp3/g1.mp3', './mp3/g1s.mp3']
+
 
 class Tile:
     def __init__(self, x, y):
@@ -32,6 +35,10 @@ class Tile:
 
     def click(self):
         self.is_clicked = True
+        note = random.choice(_songs)
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(note)
+        pygame.mixer.music.play()
 
     def display(self):
         if not self.is_note:
@@ -94,10 +101,13 @@ class Grid:
             self.rows.append(row)
         print("1 :", self.rows[0].y)
 
-    def display(self):
+    def display(self, score):
         for row in self.rows:
             row.display()
         pygame.draw.line(screen, blue, (0, 7*screen_height/8), (screen_width, 7*screen_height/8), 2)
+        text = font.render(str(score), 1, red)
+        text_pos = (screen_width/2 - 10, 50)
+        screen.blit(text, text_pos)
 
     def move_rows(self, inc):
         for row in self.rows:
@@ -112,7 +122,7 @@ class Grid:
                 self.rows.append(row)
             return complete
 
-        if inc and self.speed < 10:
+        if inc and self.speed < 15:
             self.speed *= 1.01
         for row in self.rows:
                 row.speed = self.speed
@@ -171,7 +181,7 @@ while complete:
     if start:
         complete = grid.move_rows(inc)
     inc = False
-    grid.display()
+    grid.display(score)
     pygame.display.update()
-pygame.time.delay(2000)
+pygame.time.delay(3000)
 pygame.quit()
