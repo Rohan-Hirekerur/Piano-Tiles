@@ -97,6 +97,7 @@ class Grid:
     def display(self):
         for row in self.rows:
             row.display()
+        pygame.draw.line(screen, blue, (0, 7*screen_height/8), (screen_width, 7*screen_height/8), 2)
 
     def move_rows(self, inc):
         for row in self.rows:
@@ -111,8 +112,8 @@ class Grid:
                 self.rows.append(row)
             return complete
 
-        if inc and self.speed < 15:
-            self.speed *= 1.05
+        if inc and self.speed < 10:
+            self.speed *= 1.01
         for row in self.rows:
                 row.speed = self.speed
         for row in self.rows:
@@ -144,8 +145,29 @@ while complete:
             pos = pygame.mouse.get_pos()
             grid.click(pos)
             score += 1
-            if score % 5 == 0:
-                inc = True
+
+        if event.type == pygame.KEYDOWN:
+            start = True
+            if event.key == pygame.K_g:
+                pos = (screen_width/8, 7*screen_height/8)
+                grid.click(pos)
+                score += 1
+                print("g")
+            if event.key == pygame.K_h:
+                pos = (3*screen_width/8, 7*screen_height/8)
+                grid.click(pos)
+                score += 1
+            if event.key == pygame.K_j:
+                pos = (5*screen_width/8, 7*screen_height/8)
+                grid.click(pos)
+                score += 1
+            if event.key == pygame.K_k:
+                pos = (7*screen_width/8, 7*screen_height/8)
+                grid.click(pos)
+                score += 1
+
+        if score % 5 == 0:
+            inc = True
     if start:
         complete = grid.move_rows(inc)
     inc = False
