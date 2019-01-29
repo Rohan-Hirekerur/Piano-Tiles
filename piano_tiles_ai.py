@@ -3,6 +3,39 @@ import pyglet
 from collections import deque
 import random
 import math
+import numpy as np
+import cnn
+import tensorflow as tf
+
+
+state_size = [400, 800, 3]
+action_size = 5
+learning_rate = 0.0002      # Alpha (aka learning rate)
+
+# TRAINING HYPER PARAMETERS
+total_episodes = 500        # Total episodes for training
+max_steps = 100              # Max possible steps in an episode
+batch_size = 100
+
+# Exploration parameters for epsilon greedy strategy
+explore_start = 1.0            # exploration probability at start
+explore_stop = 0.01            # minimum exploration probability
+decay_rate = 0.0001            # exponential decay rate for exploration prob
+
+# Q learning hyper parameters
+gamma = 0.95               # Discounting rate
+
+# MEMORY HYPER PARAMETERS
+pretrain_length = batch_size   # Number of experiences stored in the Memory when initialized for the first time
+memory_size = 1000000          # Number of experiences the Memory can keep
+
+# MODIFY THIS TO FALSE IF YOU JUST WANT TO SEE THE TRAINED AGENT
+training = False
+testing = True
+
+
+possible_actions = [0, 1, 2, 3, 4]
+
 
 white = (255, 255, 255)
 blue = (0, 0, 255)
