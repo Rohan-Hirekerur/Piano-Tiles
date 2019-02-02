@@ -13,7 +13,7 @@ action_size = 5
 learning_rate = 0.0002      # Alpha (aka learning rate)
 
 # TRAINING HYPER PARAMETERS
-total_episodes = 500        # Total episodes for training
+total_episodes = 50000        # Total episodes for training
 max_steps = 100              # Max possible steps in an episode
 batch_size = 5
 
@@ -30,8 +30,8 @@ pretrain_length = batch_size   # Number of experiences stored in the Memory when
 memory_size = 1000000          # Number of experiences the Memory can keep
 
 # MODIFY THIS TO FALSE IF YOU JUST WANT TO SEE THE TRAINED AGENT
-training = True
-testing = False
+training = False
+testing = True
 
 
 possible_actions = [0, 1, 2, 3, 4]
@@ -130,9 +130,7 @@ class Grid:
         for i in range(0, 5):
             y = (4-i) * screen_height / 4 - screen_height / 4
             row = Row(y)
-            print(row.y)
             self.rows.append(row)
-        print("1 :", self.rows[0].y)
 
     def display(self, score):
         for row in self.rows:
@@ -170,7 +168,6 @@ class Grid:
             if y >= row.y:
                 row.click(x)
                 break
-        print("clicked :", x, y)
 
 
 def preprocess_frame(frame):
@@ -246,71 +243,75 @@ class Memory:
 
 
 memory = Memory(max_size=memory_size)
-
-for i in range(pretrain_length):
-    # If it's the first step
-    # First we need a state
-    state = pygame.surfarray.array3d(screen)
-    state, stacked_frames = stack_frames(stacked_frames, state, True)
-
-    # Random action
-    action = random.choice(possible_actions)
-
-    grid = Grid()
-    start = False
-    inc = False
-    complete = True
-    score = 0
-    reward = 0
-    while complete:
-        screen.fill(blue)
-        events = pygame.event.get()
-        reward += 1
-
-        if action != 0:
-            if action == 1:
-                pos = (screen_width / 8, 7 * screen_height / 8)
-                grid.click(pos)
-                score += 1
-            if action == 2:
-                pos = (3 * screen_width / 8, 7 * screen_height / 8)
-                grid.click(pos)
-                score += 1
-            if action == 3:
-                pos = (5 * screen_width / 8, 7 * screen_height / 8)
-                grid.click(pos)
-                score += 1
-            if action == 4:
-                pos = (7 * screen_width / 8, 7 * screen_height / 8)
-                grid.click(pos)
-                score += 1
-
-            if score % 5 == 0:
-                inc = True
-
-        complete = grid.move_rows(inc)
+if training:
+    for i in range(pretrain_length):
+        # If it's the first step
+        # First we need a state
+        grid = Grid()
+        start = False
         inc = False
+        complete = True
+        score = 0
+        reward = 0
         grid.display(score)
+        pygame.display.update()
+        state = pygame.surfarray.array3d(screen)
+        state, stacked_frames = stack_frames(stacked_frames, state, True)
 
-        # If we're dead
-        if not complete:
-            # We finished the episode
-            reward -= 1000
-            next_state = np.zeros(state.shape)
+        # Random action
+        action = random.choice(possible_actions)
 
-            # Add experience to memory
-            memory.add((state, action, reward, next_state, not complete))
-        else:
-            # Get the next state
-            pygame.display.update()
-            next_state = pygame.surfarray.array3d(screen)
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
 
-            # Add experience to memory
-            memory.add((state, action, reward, next_state, not complete))
+        while complete:
+            clock.tick()
+            screen.fill(blue)
+            events = pygame.event.get()
+            reward += 1
 
-            # Our state is now the next_state
-            state = next_state
+            if action != 0:
+                if action == 1:
+                    pos = (screen_width / 8, 7 * screen_height / 8)
+                    grid.click(pos)
+                    score += 1
+                if action == 2:
+                    pos = (3 * screen_width / 8, 7 * screen_height / 8)
+                    grid.click(pos)
+                    score += 1
+                if action == 3:
+                    pos = (5 * screen_width / 8, 7 * screen_height / 8)
+                    grid.click(pos)
+                    score += 1
+                if action == 4:
+                    pos = (7 * screen_width / 8, 7 * screen_height / 8)
+                    grid.click(pos)
+                    score += 1
+
+                if score % 5 == 0:
+                    inc = True
+
+            complete = grid.move_rows(inc)
+            inc = False
+            grid.display(score)
+
+            # If we're dead
+            if not complete:
+                # We finished the episode
+                reward -= 1000
+                next_state = np.zeros(state.shape)
+
+                # Add experience to memory
+                memory.add((state, action, reward, next_state, not complete))
+            else:
+                # Get the next state
+                pygame.display.update()
+                next_state = pygame.surfarray.array3d(screen)
+                next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+
+                # Add experience to memory
+                memory.add((state, action, reward, next_state, not complete))
+
+                # Our state is now the next_state
+                state = next_state
 
 
 def predict_action(explore_start, explore_stop, decay_rate, decay_step, state, actions):
@@ -357,61 +358,65 @@ if training:
             episode_rewards = []
 
             # Make a new episode and observe the first state
+
+            grid = Grid()
+            start = False
+            inc = False
+            complete = True
+            score = 0
+            reward = 0
+
+            grid.display(score)
+            pygame.display.update()
             state = pygame.surfarray.array3d(screen)
 
             # Remember that stack frame function also call our preprocess function.
             state, stacked_frames = stack_frames(stacked_frames, state, True)
 
-            while step < max_steps:
+            while complete:
+                clock.tick()
                 step += 1
 
                 # Increase decay_step
                 decay_step += 1
 
                 # Predict the action to take and take it
-                action, explore_probability = predict_action(explore_start, explore_stop, decay_rate, decay_step, state,
+                action, explore_probability = predict_action(explore_start, explore_stop, decay_rate, decay_step,
+                                                             state,
                                                              possible_actions)
 
-                # Do the action
-                grid = Grid()
-                start = False
+                screen.fill(blue)
+                events = pygame.event.get()
+                reward += 1
+
+                if action != 0:
+                    if action == 1:
+                        pos = (screen_width / 8, 7 * screen_height / 8)
+                        grid.click(pos)
+                        score += 1
+                        reward += 10
+                    if action == 2:
+                        pos = (3 * screen_width / 8, 7 * screen_height / 8)
+                        grid.click(pos)
+                        score += 1
+                        reward += 10
+                    if action == 3:
+                        pos = (5 * screen_width / 8, 7 * screen_height / 8)
+                        grid.click(pos)
+                        score += 1
+                        reward += 10
+                    if action == 4:
+                        pos = (7 * screen_width / 8, 7 * screen_height / 8)
+                        grid.click(pos)
+                        score += 1
+                        reward += 10
+
+                    if score % 5 == 0:
+                        inc = True
+
+                complete = grid.move_rows(inc)
                 inc = False
-                complete = True
-                score = 0
-                reward = 0
-                while complete:
-                    screen.fill(blue)
-                    events = pygame.event.get()
-                    reward += 1
-
-                    if action != 0:
-                        if action == 1:
-                            pos = (screen_width / 8, 7 * screen_height / 8)
-                            grid.click(pos)
-                            score += 1
-                            reward += 10
-                        if action == 2:
-                            pos = (3 * screen_width / 8, 7 * screen_height / 8)
-                            grid.click(pos)
-                            score += 1
-                            reward += 10
-                        if action == 3:
-                            pos = (5 * screen_width / 8, 7 * screen_height / 8)
-                            grid.click(pos)
-                            score += 1
-                            reward += 10
-                        if action == 4:
-                            pos = (7 * screen_width / 8, 7 * screen_height / 8)
-                            grid.click(pos)
-                            score += 1
-                            reward += 10
-
-                        if score % 5 == 0:
-                            inc = True
-
-                    complete = grid.move_rows(inc)
-                    inc = False
-                    grid.display(score)
+                grid.display(score)
 
 
                 # Look if the episode is finished
@@ -435,7 +440,7 @@ if training:
 
                     print('Episode: {}'.format(episode),
                           'Total reward: {}'.format(total_reward),
-                          # 'Training loss: {:.4f}'.format(loss),
+                           #'Training loss: {}'.format(sess.run(DQNetwork.loss)),
                           'Explore P: {:.4f}'.format(explore_probability))
 
                     memory.add((state, action, reward, next_state, done))
@@ -486,6 +491,7 @@ if training:
                                    feed_dict={DQNetwork.inputs: states_mb,
                                               DQNetwork.sample_op: targets_mb,
                                               DQNetwork.actions: actions_mb})
+                print(loss)
 
             # Save model every 5 episodes
             if episode % 5 == 0:
@@ -501,14 +507,17 @@ if testing:
 
             done = False
 
-            state = pygame.surfarray.array3d(screen)
-            state, stacked_frames = stack_frames(stacked_frames, state, True)
-
             grid = Grid()
             start = False
             inc = False
             complete = True
             score = 0
+
+            grid.display(score)
+            pygame.display.update()
+            state = pygame.surfarray.array3d(screen)
+            state, stacked_frames = stack_frames(stacked_frames, state, True)
+
             while complete:
                 clock.tick()
                 screen.fill(blue)
@@ -539,8 +548,8 @@ if testing:
 
                     if score % 5 == 0:
                         inc = True
-                if start:
-                    complete = grid.move_rows(inc)
+
+                complete = grid.move_rows(inc)
                 inc = False
                 grid.display(score)
                 pygame.display.update()
